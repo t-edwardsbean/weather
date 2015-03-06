@@ -1,0 +1,7 @@
+mapred.job.name=任务开始
+
+# azkaban
+type=command
+command=chmod 777 /opt/azkaban/azkaban-exec-server-2.6.2/projects/ -R
+command.1=../bin/start.sh
+author=edwardsbean

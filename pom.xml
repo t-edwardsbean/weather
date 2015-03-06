@@ -6,19 +6,27 @@
 
     <groupId>com.baidu</groupId>
     <artifactId>weather</artifactId>
+    <packaging>pom</packaging>
     <version>1.0-SNAPSHOT</version>
+    <modules>
+        <module>weather-future</module>
+        <module>weather-suggestion</module>
+        <module>weather-common</module>
+        <module>weather-today</module>
+        <module>weather-alarm</module>
+        <module>weather-aqi</module>
+        <module>weather-aqiusa</module>
+        <module>weather-thinkpage</module>
+    </modules>
     <properties>
-        <webmagic.version>0.5.2</webmagic.version>
+        <webmagic.version>0.5.2-SNAPSHOT</webmagic.version>
     </properties>
     <repositories>
-        <repository>
-            <id>baidu</id>
-            <url>http://maven.scm.baidu.com:8081/nexus/content/groups/public/</url>
-        </repository>
         <repository>
             <id>company</id>
             <url>http://172.17.156.61:8081/nexus/content/groups/public/</url>
         </repository>
+
     </repositories>
 
     <dependencies>
@@ -26,6 +34,28 @@
             <groupId>com.baidu</groupId>
             <artifactId>alarm_appender</artifactId>
             <version>1.2-SNAPSHOT</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.httpcomponents</groupId>
+                    <artifactId>httpclient</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.httpcomponents</groupId>
+                    <artifactId>httpcore</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>mysql</groupId>
@@ -103,27 +133,19 @@
             <artifactId>webmagic-core</artifactId>
             <version>${webmagic.version}</version>
         </dependency>
-        <!--<dependency>-->
-        <!--<groupId>com.typesafe.akka</groupId>-->
-        <!--<artifactId>akka-actor_2.10</artifactId>-->
-        <!--<version>2.3.1</version>-->
-        <!--</dependency>-->
-        <!--<dependency>-->
-        <!--<groupId>com.typesafe.akka</groupId>-->
-        <!--<artifactId>akka-slf4j_2.10</artifactId>-->
-        <!--<version>2.3.1</version>-->
-        <!--</dependency>-->
     </dependencies>
 
     <profiles>
         <profile>
             <id>test</id>
             <properties>
+                <log4j.output>console</log4j.output>
                 <dataSource.driverClass>com.mysql.jdbc.Driver</dataSource.driverClass>
                 <dataSource.host>172.17.156.61:3306</dataSource.host>
+                <dataSource.name>weather_crawler</dataSource.name>
                 <dataSource.user>weather</dataSource.user>
                 <dataSource.password>hadoop</dataSource.password>
-                <dataSource.initialPoolSize>10</dataSource.initialPoolSize>
+                <dataSource.initialPoolSize>3</dataSource.initialPoolSize>
                 <!--<dataSource.maxIdleTime>1000</dataSource.maxIdleTime>-->
             </properties>
             <build>
@@ -131,7 +153,9 @@
                     <resource>
                         <directory>src/main/resources</directory>
                         <includes>
-                            <include>**/*</include>
+                            <include>**/*.properties</include>
+                            <include>**/*.xml</include>
+                            <include>**/*.conf</include>
                         </includes>
                     </resource>
                     <resource>
@@ -144,150 +168,332 @@
                 </resources>
             </build>
         </profile>
-
         <profile>
-            <id>release</id>
+            <id>test-release</id>
             <properties>
-                <project.path>/opt/weather</project.path>
-                <project.main.class>com.baidu.weather.WeatherMain</project.main.class>
+                <log4j.output>alarm</log4j.output>
+                <project.path>/opt/weather/${pom.artifactId}</project.path>
                 <dataSource.driverClass>com.mysql.jdbc.Driver</dataSource.driverClass>
                 <dataSource.host>172.17.156.61:3306</dataSource.host>
+                <dataSource.name>weather_crawler</dataSource.name>
                 <dataSource.user>weather</dataSource.user>
                 <dataSource.password>hadoop</dataSource.password>
-                <dataSource.initialPoolSize>15</dataSource.initialPoolSize>
+                <dataSource.initialPoolSize>7</dataSource.initialPoolSize>
                 <!--<dataSource.maxIdleTime>1000</dataSource.maxIdleTime>-->
             </properties>
             <build>
-                <resources>
-                    <resource>
-                        <directory>src/main/resources</directory>
-                        <excludes>
-                            <exclude>*.*</exclude>
-                        </excludes>
-                    </resource>
-                </resources>
-                <plugins>
+                <pluginManagement>
+                    <plugins>
                         <plugin>
                             <groupId>org.apache.maven.plugins</groupId>
-                            <artifactId>maven-compiler-plugin</artifactId>
-                            <version>2.0.2</version>
-                            <configuration>
-                                <source>1.7</source>
-                                <target>1.7</target>
-                            </configuration>
+                            <artifactId>maven-jar-plugin</artifactId>
+                            <executions>
+                                <execution>
+                                    <id>package-jar</id>
+                                    <phase>package</phase>
+                                    <goals>
+                                        <goal>jar</goal>
+                                    </goals>
+                                    <configuration>
+                                        <classifier>core</classifier>
+                                        <excludes>
+                                            <exclude>*.properties</exclude>
+                                            <exclude>*.xml</exclude>
+                                            <exclude>*.sh</exclude>
+                                            <exclude>*.conf</exclude>
+                                        </excludes>
+                                    </configuration>
+                                </execution>
+                            </executions>
                         </plugin>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-jar-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>package-jar</id>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>jar</goal>
-                                </goals>
-                                <configuration>
-                                    <classifier>core</classifier>
-                                    <excludes>
-                                        <exclude>*.properties</exclude>
-                                        <exclude>*.xml</exclude>
-                                        <exclude>*.sh</exclude>
-                                        <exclude>*.conf</exclude>
-                                    </excludes>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-dependency-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>copy-dependencies</id>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>copy-dependencies</goal>
-                                </goals>
-                                <configuration>
-                                    <outputDirectory>${project.build.directory}/lib</outputDirectory>
-                                    <overWriteReleases>false</overWriteReleases>
-                                    <overWriteSnapshots>false</overWriteSnapshots>
-                                    <overWriteIfNewer>true</overWriteIfNewer>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-resources-plugin</artifactId>
-                        <version>2.4</version>
-                        <executions>
-                            <execution>
-                                <id>copy-config</id>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>copy-resources</goal>
-                                </goals>
-                                <configuration>
-                                    <encoding>UTF-8</encoding>
-                                    <outputDirectory>${project.build.directory}/conf</outputDirectory>
-                                    <resources>
-                                        <resource>
-                                            <directory>src/main/resources/</directory>
-                                            <includes>
-                                                <include>*.xml</include>
-                                                <include>*.properties</include>
-                                                <include>*.conf</include>
-                                                <include>*.sql</include>
-                                            </includes>
-                                            <filtering>true</filtering>
-                                        </resource>
-                                    </resources>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>copy-shell</id>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>copy-resources</goal>
-                                </goals>
-                                <configuration>
-                                    <encoding>UTF-8</encoding>
-                                    <outputDirectory>${project.build.directory}/bin</outputDirectory>
-                                    <resources>
-                                        <resource>
-                                            <directory>src/main/resources/</directory>
-                                            <includes>
-                                                <include>*.sh</include>
-                                            </includes>
-                                            <filtering>true</filtering>
-                                        </resource>
-                                    </resources>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <artifactId>maven-assembly-plugin</artifactId>
-                        <configuration>
-                            <finalName>weather</finalName>
-                            <appendAssemblyId>false</appendAssemblyId>
-                            <descriptors>
-                                <descriptor>package.xml</descriptor>
-                            </descriptors>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <id>make-assembly</id>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>single</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
+                        <plugin>
+                            <groupId>org.apache.maven.plugins</groupId>
+                            <artifactId>maven-dependency-plugin</artifactId>
+                            <executions>
+                                <execution>
+                                    <id>copy-dependencies</id>
+                                    <phase>package</phase>
+                                    <goals>
+                                        <goal>copy-dependencies</goal>
+                                    </goals>
+                                    <configuration>
+                                        <outputDirectory>${project.build.directory}/lib</outputDirectory>
+                                        <overWriteReleases>false</overWriteReleases>
+                                        <overWriteSnapshots>false</overWriteSnapshots>
+                                        <overWriteIfNewer>true</overWriteIfNewer>
+                                    </configuration>
+                                </execution>
+                            </executions>
+                        </plugin>
+                        <plugin>
+                            <groupId>org.apache.maven.plugins</groupId>
+                            <artifactId>maven-resources-plugin</artifactId>
+                            <version>2.4</version>
+                            <executions>
+                                <execution>
+                                    <id>copy-config</id>
+                                    <phase>package</phase>
+                                    <goals>
+                                        <goal>copy-resources</goal>
+                                    </goals>
+                                    <configuration>
+                                        <encoding>UTF-8</encoding>
+                                        <outputDirectory>${project.build.directory}/conf</outputDirectory>
+                                        <resources>
+                                            <resource>
+                                                <directory>src/main/resources/</directory>
+                                                <includes>
+                                                    <include>*.xml</include>
+                                                    <include>*.properties</include>
+                                                    <include>*.conf</include>
+                                                    <include>*.sql</include>
+                                                    <include>*.job</include>
+                                                </includes>
+                                                <filtering>true</filtering>
+                                            </resource>
+                                        </resources>
+                                    </configuration>
+                                </execution>
+                                <execution>
+                                    <id>copy-global-conf</id>
+                                    <phase>package</phase>
+                                    <goals>
+                                        <goal>copy-resources</goal>
+                                    </goals>
+                                    <configuration>
+                                        <encoding>UTF-8</encoding>
+                                        <outputDirectory>${project.build.directory}/conf</outputDirectory>
+                                        <resources>
+                                            <resource>
+                                                <directory>src/main/resources/</directory>
+                                                <includes>
+                                                    <include>*.xml</include>
+                                                </includes>
+                                                <filtering>true</filtering>
+                                            </resource>
+                                        </resources>
+                                    </configuration>
+                                </execution>
+                                <execution>
+                                    <id>copy-shell</id>
+                                    <phase>package</phase>
+                                    <goals>
+                                        <goal>copy-resources</goal>
+                                    </goals>
+                                    <configuration>
+                                        <encoding>UTF-8</encoding>
+                                        <outputDirectory>${project.build.directory}/bin</outputDirectory>
+                                        <resources>
+                                            <resource>
+                                                <directory>src/main/resources/</directory>
+                                                <includes>
+                                                    <include>*.sh</include>
+                                                </includes>
+                                                <filtering>true</filtering>
+                                            </resource>
+                                        </resources>
+                                    </configuration>
+                                </execution>
+                            </executions>
+                        </plugin>
+                        <plugin>
+                            <groupId>org.apache.maven.plugins</groupId>
+                            <artifactId>maven-assembly-plugin</artifactId>
+                            <configuration>
+                                <finalName>${pom.artifactId}</finalName>
+                                <appendAssemblyId>false</appendAssemblyId>
+                                <descriptors>
+                                    <descriptor>package.xml</descriptor>
+                                </descriptors>
+                            </configuration>
+                            <executions>
+                                <execution>
+                                    <id>make-assembly</id>
+                                    <phase>package</phase>
+                                    <goals>
+                                        <goal>single</goal>
+                                    </goals>
+                                </execution>
+                            </executions>
+                        </plugin>
+                    </plugins>
+                </pluginManagement>
+            </build>
+        </profile>
+        <profile>
+            <id>release</id>
+            <properties>
+                <log4j.output>alarm</log4j.output>
+                <project.path>/opt/weather/${pom.artifactId}</project.path>
+                <dataSource.driverClass>com.mysql.jdbc.Driver</dataSource.driverClass>
+                <dataSource.host>10.79.141.53:3306</dataSource.host>
+                <dataSource.name>weather_crawler</dataSource.name>
+                <dataSource.user>weather</dataSource.user>
+                <dataSource.password>91@baidu</dataSource.password>
+                <dataSource.initialPoolSize>7</dataSource.initialPoolSize>
+                <!--<dataSource.maxIdleTime>1000</dataSource.maxIdleTime>-->
+            </properties>
+            <build>
+                <!--<resources>-->
+                <!--<resource>-->
+                <!--<directory>src/main/resources</directory>-->
+                <!--<excludes>-->
+                <!--<exclude>*.*</exclude>-->
+                <!--</excludes>-->
+                <!--</resource>-->
+                <!--</resources>-->
+                <pluginManagement>
+                    <plugins>
+                        <plugin>
+                            <groupId>org.apache.maven.plugins</groupId>
+                            <artifactId>maven-jar-plugin</artifactId>
+                            <executions>
+                                <execution>
+                                    <id>package-jar</id>
+                                    <phase>package</phase>
+                                    <goals>
+                                        <goal>jar</goal>
+                                    </goals>
+                                    <configuration>
+                                        <classifier>core</classifier>
+                                        <excludes>
+                                            <exclude>*.properties</exclude>
+                                            <exclude>*.xml</exclude>
+                                            <exclude>*.sh</exclude>
+                                            <exclude>*.conf</exclude>
+                                        </excludes>
+                                    </configuration>
+                                </execution>
+                            </executions>
+                        </plugin>
+                        <plugin>
+                            <groupId>org.apache.maven.plugins</groupId>
+                            <artifactId>maven-dependency-plugin</artifactId>
+                            <executions>
+                                <execution>
+                                    <id>copy-dependencies</id>
+                                    <phase>package</phase>
+                                    <goals>
+                                        <goal>copy-dependencies</goal>
+                                    </goals>
+                                    <configuration>
+                                        <outputDirectory>${project.build.directory}/lib</outputDirectory>
+                                        <overWriteReleases>false</overWriteReleases>
+                                        <overWriteSnapshots>false</overWriteSnapshots>
+                                        <overWriteIfNewer>true</overWriteIfNewer>
+                                    </configuration>
+                                </execution>
+                            </executions>
+                        </plugin>
+                        <plugin>
+                            <groupId>org.apache.maven.plugins</groupId>
+                            <artifactId>maven-resources-plugin</artifactId>
+                            <version>2.4</version>
+                            <executions>
+                                <execution>
+                                    <id>copy-config</id>
+                                    <phase>package</phase>
+                                    <goals>
+                                        <goal>copy-resources</goal>
+                                    </goals>
+                                    <configuration>
+                                        <encoding>UTF-8</encoding>
+                                        <outputDirectory>${project.build.directory}/conf</outputDirectory>
+                                        <resources>
+                                            <resource>
+                                                <directory>src/main/resources/</directory>
+                                                <includes>
+                                                    <include>*.xml</include>
+                                                    <include>*.properties</include>
+                                                    <include>*.conf</include>
+                                                    <include>*.sql</include>
+                                                    <include>*.job</include>
+                                                </includes>
+                                                <filtering>true</filtering>
+                                            </resource>
+                                        </resources>
+                                    </configuration>
+                                </execution>
+                                <execution>
+                                    <id>copy-global-conf</id>
+                                    <phase>package</phase>
+                                    <goals>
+                                        <goal>copy-resources</goal>
+                                    </goals>
+                                    <configuration>
+                                        <encoding>UTF-8</encoding>
+                                        <outputDirectory>${project.build.directory}/conf</outputDirectory>
+                                        <resources>
+                                            <resource>
+                                                <directory>src/main/resources/</directory>
+                                                <includes>
+                                                    <include>*.xml</include>
+                                                </includes>
+                                                <filtering>true</filtering>
+                                            </resource>
+                                        </resources>
+                                    </configuration>
+                                </execution>
+                                <execution>
+                                    <id>copy-shell</id>
+                                    <phase>package</phase>
+                                    <goals>
+                                        <goal>copy-resources</goal>
+                                    </goals>
+                                    <configuration>
+                                        <encoding>UTF-8</encoding>
+                                        <outputDirectory>${project.build.directory}/bin</outputDirectory>
+                                        <resources>
+                                            <resource>
+                                                <directory>src/main/resources/</directory>
+                                                <includes>
+                                                    <include>*.sh</include>
+                                                </includes>
+                                                <filtering>true</filtering>
+                                            </resource>
+                                        </resources>
+                                    </configuration>
+                                </execution>
+                            </executions>
+                        </plugin>
+                        <plugin>
+                            <groupId>org.apache.maven.plugins</groupId>
+                            <artifactId>maven-assembly-plugin</artifactId>
+                            <configuration>
+                                <finalName>${pom.artifactId}</finalName>
+                                <appendAssemblyId>false</appendAssemblyId>
+                                <descriptors>
+                                    <descriptor>package.xml</descriptor>
+                                </descriptors>
+                            </configuration>
+                            <executions>
+                                <execution>
+                                    <id>make-assembly</id>
+                                    <phase>package</phase>
+                                    <goals>
+                                        <goal>single</goal>
+                                    </goals>
+                                </execution>
+                            </executions>
+                        </plugin>
+                    </plugins>
+                </pluginManagement>
             </build>
         </profile>
     </profiles>
+
+    <build>
+
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>2.0.2</version>
+                <configuration>
+                    <source>1.7</source>
+                    <target>1.7</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>
